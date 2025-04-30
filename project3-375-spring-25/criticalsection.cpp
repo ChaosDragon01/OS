@@ -149,8 +149,6 @@ void writeprocess(int writerStatus) {
 */
 
 
-
-
 void process(){
     
     int processid = rand() % 5; // generate a random process ID
