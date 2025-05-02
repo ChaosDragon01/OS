@@ -1,0 +1,177 @@
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+using namespace std;
+
+/* I am not using any form of implementation-specific libraries for this. 
+Initially this part of the project was created with separate implementations.
+File paths:
+- main.cpp
+- main.exe
+- makefile
+- Semaphore.cpp
+- Semaphore.h
+- semaphorecriticalsection.cpp
+
+All from: project3-375-spring-25/subprojectsemaphore/
+
+I’ve now combined everything into one file for simplicity and to avoid submission issues.
+*/
+
+
+
+
+class Semaphore {  
+/*
+This is the semaphore class I initialized for the binary/counting semaphore part.
+It allows mutual exclusion and synchronization between processes.
+It has methods for waiting and signaling, and for getting the current value.
+*/
+private:
+    int value;
+public:
+    Semaphore(int init = 1) : value(init) {}
+
+    void wait() {
+        if (value > 0) {
+            value--;
+        } else {
+            cout << "[PANIC] Wait failed: Semaphore already at 0" << endl;
+        }
+    }
+
+    void signal() {
+        value++; // Increment the semaphore value
+    }
+
+    int getVal() const {
+        return value; // Return the current value of the semaphore
+    }
+};
+
+
+/*
+These are the global variables and semaphores used in the program.
+They are used to keep track of the number of readers and writers,
+as well as their program counters (to simulate one instruction per cycle).
+*/
+
+Semaphore mutex(1);       // Binary semaphore for mutual exclusion
+Semaphore write(1);         // Binary semaphore for writer lock
+Semaphore readCount(2);   // Counting semaphore to allow up to 2 readers
+
+int readercount = 0;               // Active reader count
+int pcReader[3] = {0};    // Program counters for 3 readers
+int pcWriter[2] = {0};    // Program counters for 2 writers
+
+
+/*
+This function checks for violations of the critical section rules.
+- Panic if both reader(s) and writer(s) are inside simultaneously.
+- Panic if there are more than 2 readers in the critical section.
+*/
+void checkCriticalSectionState() { 
+    if (readercount > 2 || (readercount > 0 && write.getVal() < 1)) {
+        cout << "[PANIC] Critical section violation: ";
+        if (readercount > 2) cout << "More than 2 readers detected. ";
+        if (readercount > 0 && write.getVal() < 1) cout << "Reader and Writer co-existing.";
+        cout << endl;
+    } else {
+        cout << "Critical section is stable." << endl;
+    }
+}
+
+
+/*
+This is the reader function that simulates a reader process.
+It uses a switch to simulate one instruction per cycle.
+It handles entry, reading, and exit.
+*/
+void reader(int id) {
+    switch (pcReader[id]) {
+        case 0:
+            if (write.getVal() > 0 && readCount.getVal() > 0) {
+                readCount.wait();
+                readercount++;
+                cout << "Reader " << ++id << " entered the critical section." << endl;
+                pcReader[id]++;
+            } else {
+                cout << "Reader " << ++id << " is waiting..." << endl;
+            }
+            break;
+        case 1:
+            cout << "Reader " << ++id << " is reading..." << endl;
+            pcReader[id]++;
+            break;
+        case 2:
+            readercount--;
+            readCount.signal();
+            cout << "Reader " << ++id << " exited the critical section." << endl;
+            pcReader[id] = 0;
+            break;
+    }
+}
+
+
+
+/*
+This is the writer function that simulates a writer process.
+It uses a switch to simulate one instruction per cycle.
+It handles entry, writing, and exit.
+*/
+void writer(int id) {
+    switch (pcWriter[id]) {
+        case 0: 
+            if (readercount == 0 && write.getVal() > 0) {
+                write.wait();
+                cout << "Writer " << ++id << " entered the critical section." << endl;
+                pcWriter[id]++;
+            } else {
+                cout << "Writer " << ++id << " is waiting..." << endl;
+            }
+            break;
+        case 1:
+            cout << "Writer " << ++id << " is writing..." << endl;
+            pcWriter[id]++;
+            break;
+        case 2:
+            write.signal();
+            cout << "Writer " << ++id << " exited the critical section." << endl;
+            pcWriter[id] = 0;
+            break;
+    }
+}
+
+
+int main() {
+    srand(time(0)); // Seed Random number generator
+
+    for (int i = 0; i < 20; i++) {
+        int proc = rand() % 5; // 0–2: readers, 3–4: writers
+
+        switch (proc) { // Randomly select a process to simulate
+            case 0:
+                reader(0);
+                break;
+            case 1:
+                reader(1);
+                break;
+            case 2:
+                reader(2);
+                break;
+            case 3:
+                writer(0);
+                break;
+            case 4:
+                writer(1);
+                break;
+            default:
+                cout << "[PANIC] Invalid process ID generated: " << proc << endl; // This should never happen
+                break;
+        }
+       
+        checkCriticalSectionState(); // Always validate after each process step
+    }
+
+    return 0;
+}

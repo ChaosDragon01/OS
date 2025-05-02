@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
-#include<chrono>
 using namespace std;
 
 
@@ -158,7 +157,8 @@ void process(){
     int randwriter = rand() % 1; 
 
     switch (processID)
-    {
+    {   // The professor said I had only used 5 switch cases, but I used 6, 0 is the first case.
+        
     case 0:
         //cout << "Readers: " << readers << " readers, " << "Writers: " << writers << " writers" << endl;
         //readProcesscount[randreader]=true;
