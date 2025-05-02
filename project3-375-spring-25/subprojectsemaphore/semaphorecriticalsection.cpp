@@ -60,9 +60,12 @@ Semaphore mutex(1);       // Binary semaphore for mutual exclusion
 Semaphore write(1);         // Binary semaphore for writer lock
 Semaphore readCount(2);   // Counting semaphore to allow up to 2 readers
 
-int readercount = 0;               // Active reader count
-int pcReader[3] = {0};    // Program counters for 3 readers
-int pcWriter[2] = {0};    // Program counters for 2 writers
+int readercount = 0;
+int writercount = 0;
+bool readProcesscount[3] = {false, false, false};
+bool writeProcesscount[2] = {false, false};
+int pcReader[3] = {0};
+int pcWriter[2] = {0};
 
 
 /*
@@ -88,27 +91,19 @@ It uses a switch to simulate one instruction per cycle.
 It handles entry, reading, and exit.
 */
 void reader(int id) {
-    switch (pcReader[id]) {
-        case 0:
-            if (write.getVal() > 0 && readCount.getVal() > 0) {
-                readCount.wait();
-                readercount++;
-                cout << "Reader " << ++id << " entered the critical section." << endl;
-                pcReader[id]++;
-            } else {
-                cout << "Reader " << ++id << " is waiting..." << endl;
-            }
-            break;
-        case 1:
-            cout << "Reader " << ++id << " is reading..." << endl;
-            pcReader[id]++;
-            break;
-        case 2:
-            readercount--;
-            readCount.signal();
-            cout << "Reader " << ++id << " exited the critical section." << endl;
-            pcReader[id] = 0;
-            break;
+    if (!readProcesscount[id] && writercount == 0 && readCount.getVal() > 0) {
+        readCount.wait();
+        readercount++;
+        readProcesscount[id] = true;
+        cout << "Reader " << id + 1 << " entered the critical section." << endl;
+    } else if (readProcesscount[id]) {
+        cout << "Reader " << id + 1 << " is reading..." << endl;
+        readCount.signal();
+        readercount--;
+        readProcesscount[id] = false;
+        cout << "Reader " << id + 1 << " exited the critical section." << endl;
+    } else {
+        cout << "Reader " << id + 1 << " is waiting..." << endl;
     }
 }
 
@@ -120,58 +115,62 @@ It uses a switch to simulate one instruction per cycle.
 It handles entry, writing, and exit.
 */
 void writer(int id) {
-    switch (pcWriter[id]) {
-        case 0: 
-            if (readercount == 0 && write.getVal() > 0) {
-                write.wait();
-                cout << "Writer " << ++id << " entered the critical section." << endl;
-                pcWriter[id]++;
-            } else {
-                cout << "Writer " << ++id << " is waiting..." << endl;
-            }
-            break;
-        case 1:
-            cout << "Writer " << ++id << " is writing..." << endl;
-            pcWriter[id]++;
-            break;
-        case 2:
-            write.signal();
-            cout << "Writer " << ++id << " exited the critical section." << endl;
-            pcWriter[id] = 0;
-            break;
+    if (!writeProcesscount[id] && readercount == 0 && writercount == 0 && write.getVal() > 0) {
+        write.wait();
+        writercount++;
+        writeProcesscount[id] = true;
+        cout << "Writer " << id + 1 << " entered the critical section." << endl;
+    } else if (writeProcesscount[id]) {
+        cout << "Writer " << id + 1 << " is writing..." << endl;
+        write.signal();
+        writercount--;
+        writeProcesscount[id] = false;
+        cout << "Writer " << id + 1 << " exited the critical section." << endl;
+    } else {
+        cout << "Writer " << id + 1 << " is waiting..." << endl;
     }
 }
 
 
 int main() {
-    srand(time(0)); // Seed Random number generator
+    srand(time(0));  // Seed for random number generation
 
     for (int i = 0; i < 20; i++) {
-        int proc = rand() % 5; // 0–2: readers, 3–4: writers
+        int proc = rand() % 5; // 0-2: readers, 3-4: writers, 5: randomized reader or writer
 
-        switch (proc) { // Randomly select a process to simulate
+        switch (proc) {
             case 0:
-                reader(0);
+                if (pcReader[0] < 3) reader(0);
                 break;
             case 1:
-                reader(1);
+                if (pcReader[1] < 3) reader(1);
                 break;
             case 2:
-                reader(2);
+                if (pcReader[2] < 3) reader(2);
                 break;
             case 3:
-                writer(0);
+                if (pcWriter[0] < 3) writer(0);
                 break;
             case 4:
-                writer(1);
+                if (pcWriter[1] < 3) writer(1);
                 break;
-            default:
-                cout << "[PANIC] Invalid process ID generated: " << proc << endl; // This should never happen
+            case 5: {
+                int r_or_w = rand() % 2; // 0 = reader, 1 = writer
+                if (r_or_w == 0) {
+                    int r_id = rand() % 3;
+                    if (pcReader[r_id] < 3) reader(r_id);
+                } else {
+                    int w_id = rand() % 2;
+                    if (pcWriter[w_id] < 3) writer(w_id);
+                }
                 break;
+            }
         }
-       
-        checkCriticalSectionState(); // Always validate after each process step
+
+        checkCriticalSectionState();
     }
 
     return 0;
 }
+
+

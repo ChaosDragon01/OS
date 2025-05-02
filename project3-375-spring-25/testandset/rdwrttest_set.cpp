@@ -46,11 +46,11 @@ void readerentry(int id) {
     if (!writeProcesscount[0] && !writeProcesscount[1] && readers < 2 && !testAndSet(lockFlag)) {
         readProcesscount[id] = true;
         readers++;
-        cout << "Reader " << id++ << " entered the critical section."<< endl ;
+        cout << "Reader " << ++id << " entered the critical section."<< endl ;
         lockFlag = false;
         pcReader[id]++;
     } else {
-        cout << "Reader " << id++ << " is waiting..." << endl ;
+        cout << "Reader " << ++id << " is waiting..." << endl ;
     }
 }
 
@@ -62,7 +62,7 @@ It will print a message to the console that the reader is reading the data.
 It will also increment the process counter for the reader.
 */
 void readerread(int id) {
-    cout << "Reader " << id++<< " is reading..."<< endl ;
+    cout << "Reader " << ++id << " is reading..."<< endl ;
     pcReader[id]++;
 }
 
@@ -75,11 +75,11 @@ void readerexit(int id) {
     if (!testAndSet(lockFlag)) {
         readProcesscount[id] = false;
         readers--;
-        cout << "Reader " << id++ << " exited the critical section." << endl ;
+        cout << "Reader " << ++id << " exited the critical section." << endl ;
         lockFlag = false;
         pcReader[id] = 0;
     } else {
-        cout << "Reader " << id++ << " is waiting to exit..." << endl ;
+        cout << "Reader " << ++id << " is waiting to exit..." << endl ;
     }
 }
 
@@ -100,16 +100,16 @@ void writerentry(int id) {
     if (readers == 0 && writers == 0 && !testAndSet(lockFlag)) { // Check if no readers or writers are in the critical section and lockFlag is false
         writeProcesscount[id] = true; // Set the process count for the writer
         writers++; // Increment the writer count
-        cout << "Writer " << id++<< " entered the critical section." << endl ; // Print message to console
+        cout << "Writer " << ++id<< " entered the critical section." << endl ; // Print message to console
         lockFlag = false; // Set the lockFlag to false to allow other processes to enter
         pcWriter[id]++; // Increment the process count for the writer
     } else {
-        cout << "Writer " << id++<< " is waiting..." << endl ; // Print message to console if the writer cannot enter the critical section
+        cout << "Writer " << ++id<< " is waiting..." << endl ; // Print message to console if the writer cannot enter the critical section
     }
 }
 
 void writerwrite(int id) { // This function will be called by the writer process after it enters the critical section
-    cout << "Writer " << id++<< " is writing..." << endl ; // Print message to console that the writer is writing data
+    cout << "Writer " << ++id<< " is writing..." << endl ; // Print message to console that the writer is writing data
     pcWriter[id]++; // Increment the process count for the writer
 }
 
@@ -123,11 +123,11 @@ void writerexit(int id) { // This function will be called by the writer process 
     if (!testAndSet(lockFlag)) { // Check if the lockFlag is false
         writeProcesscount[id] = false; // Set the process count for the writer to false
         writers--; // Decrement the writer count
-        cout << "Writer " << id++<< " exited the critical section." << endl ;
+        cout << "Writer " << ++id<< " exited the critical section." << endl ;
         lockFlag = false; // Set the lockFlag to false to allow other processes to enter
         pcWriter[id] = 0; // Reset the process count for the writer
     } else { // Print message to console if the writer cannot exit the critical section
-        cout << "Writer " << id++<< " is waiting to exit..." << endl ; // Print message to console if the writer cannot exit the critical section
+        cout << "Writer " << ++id<< " is waiting to exit..." << endl ; // Print message to console if the writer cannot exit the critical section
     }
 }
 
